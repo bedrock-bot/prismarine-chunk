@@ -84,9 +84,9 @@ class ChunkColumn13 extends CommonChunkColumn {
     }
   }
 
-  async updateBiomeHash (fromBuf) {
+  updateBiomeHash (fromBuf) {
     this.biomesUpdated = false
-    this.biomesHash = await getChecksum(fromBuf)
+    this.biomesHash = getChecksum(fromBuf)
     return this.biomesHash
   }
 
@@ -94,7 +94,7 @@ class ChunkColumn13 extends CommonChunkColumn {
    * Encodes this chunk column for the network with no caching
    * @param buffer Full chunk buffer
    */
-  async networkEncodeNoCache () {
+  networkEncodeNoCache () {
     const tileBufs = []
     for (const key in this.blockEntities) {
       const tile = this.blockEntities[key]
@@ -112,7 +112,7 @@ class ChunkColumn13 extends CommonChunkColumn {
 
     const sectionBufs = []
     for (const section of this.sections) {
-      sectionBufs.push(await section.encode(StorageType.Runtime, false, this.compactOnSave))
+      sectionBufs.push(section.encode(StorageType.Runtime, false, this.compactOnSave))
     }
     return Buffer.concat([
       ...sectionBufs,
@@ -128,11 +128,11 @@ class ChunkColumn13 extends CommonChunkColumn {
    * @param blobStore The blob store to write chunks in this section to
    * @returns {Promise<Buffer[]>} The blob hashes for this chunk, the last one is biomes, rest are sections
    */
-  async networkEncodeBlobs (blobStore) {
+  networkEncodeBlobs (blobStore) {
     const blobHashes = []
     for (const section of this.sections) {
       if (section.updated || !blobStore.get(section.hash)) {
-        const buffer = await section.encode(StorageType.NetworkPersistence, true, this.compactOnSave)
+        const buffer = section.encode(StorageType.NetworkPersistence, true, this.compactOnSave)
         const blob = new BlobEntry({ x: this.x, y: section.y, z: this.z, type: BlobType.ChunkSection, buffer })
         blobStore.set(section.hash, blob)
       }
@@ -142,9 +142,9 @@ class ChunkColumn13 extends CommonChunkColumn {
       if (this.biomes[0]) {
         const stream = new Stream()
         this.biomes[0].exportLegacy2D(stream)
-        await this.updateBiomeHash(stream.getBuffer())
+        this.updateBiomeHash(stream.getBuffer())
       } else {
-        await this.updateBiomeHash(Buffer.alloc(256))
+        this.updateBiomeHash(Buffer.alloc(256))
       }
 
       this.biomesUpdated = false
@@ -154,8 +154,8 @@ class ChunkColumn13 extends CommonChunkColumn {
     return blobHashes
   }
 
-  async networkEncode (blobStore) {
-    const blobs = await this.networkEncodeBlobs(blobStore)
+  networkEncode (blobStore) {
+    const blobs = this.networkEncodeBlobs(blobStore)
     const tileBufs = []
     for (const key in this.blockEntities) {
       const tile = this.blockEntities[key]
@@ -211,7 +211,7 @@ class ChunkColumn13 extends CommonChunkColumn {
    * @param {Buffer} payload The rest of the non-cached data
    * @returns {CCHash[]} A list of hashes we don't have and need. If len > 0, decode failed.
    */
-  async networkDecode (blobs, blobStore, payload) {
+  networkDecode (blobs, blobStore, payload) {
     // We modify blobs, need to make a copy here
     blobs = [...blobs]
     if (!blobs.length) {

@@ -83,7 +83,7 @@ type CCHash = { type: BlobType, hash: BigInt }
 type PaletteEntry = { name, stateId, states }
 
 declare class SubChunk {
-  encode(storageType: StorageType): Promise<Buffer>
+  encode(storageType: StorageType): Buffer;
   decode(storageType: StorageType, streamBuffer: Buffer): void
 
   // Returns an array of currently stored blocks in this section
@@ -151,13 +151,13 @@ declare class BedrockChunk extends CommonChunk {
 
   // On versions <1.18: Encode this full chunk column without computing a checksum at the end
   // On version >=1.18: Encode the biome data for this chunk column and border blocks
-  networkEncodeNoCache(): Promise<Buffer>
+  networkEncodeNoCache(): Buffer
   // Compute checksums and put into blob store. Returns blob hashes maped to the blob store.
-  networkEncode(blobStore: IBlobStore): Promise<{ blobs: CCHash[] }>
+  networkEncode(blobStore: IBlobStore): { blobs: CCHash[] }
 
   // On versions <=1.18: Decode this full chunk column without computing a checksum at the end
   // On version >=1.18: Decode the biome data for this chunk column and border blocks
-  networkDecodeNoCache(buffer: Buffer, sectionCount: number): Promise<void>
+  networkDecodeNoCache(buffer: Buffer, sectionCount: number): void
   /**
    * Decodes cached chunks sent over the network
    * @param blobs The blob hashes sent in the Chunk packet
@@ -165,12 +165,12 @@ declare class BedrockChunk extends CommonChunk {
    * @param {Buffer} payload The rest of the non-cached data
    * @returns {CCHash[]} A list of hashes we don't have and need. If len > 0, decode failed.
    */
-  networkDecode(blobs: BigInt[], blobStore: IBlobStore, payload: Buffer): Promise<CCHash[]>
+  networkDecode(blobs: BigInt[], blobStore: IBlobStore, payload: Buffer): CCHash[]
 
 
   // On version >=1.18: Encode/Decode block and entity NBT data for this chunk column
-  networkDecodeSubChunkNoCache(y: number, buffer: Buffer): Promise<void>
-  networkEncodeSubChunkNoCache(y: number): Promise<Buffer>
+  networkDecodeSubChunkNoCache(y: number, buffer: Buffer): void
+  networkEncodeSubChunkNoCache(y: number): Buffer
 
   /**
    *
@@ -178,14 +178,14 @@ declare class BedrockChunk extends CommonChunk {
    * @param blobStore The Blob Store holding the chunk data
    * @param payload The remaining data sent in the SubChunk packet, border blocks
    */
-  networkDecodeSubChunk(blobs: BigInt[], blobStore: IBlobStore, payload: Buffer): Promise<void>
+  networkDecodeSubChunk(blobs: BigInt[], blobStore: IBlobStore, payload: Buffer): void
   /**
    * Encodes a cached subchunk for the section at y
    * @param y The Y coordinate of the subchunk
    * @param blobStore The cache storage
    * @returns A hash of the encoded data (can be found in BlobStore) and a buffer containing block entities
    */
-  networkEncodeSubChunk(y: number, blobStore: IBlobStore): Promise<[BigInt, Buffer]>
+  networkEncodeSubChunk(y: number, blobStore: IBlobStore): [BigInt, Buffer]
 
   diskEncodeBlockEntities(): Buffer
   diskDecodeBlockEntities(buffer: Buffer): void

@@ -19,32 +19,32 @@ for (const version of versions) {
     const packetLevelChunkWithCaching = fixtures.find(f => f.includes('level_chunk') && f.includes('cached'))
     const packetLevelChunkCacheMissReponse = fixtures.find(f => f.includes('level_chunk') && f.includes('CacheMiss'))
 
-    it('can re-encode level_chunk packet without caching', async () => {
+    it('can re-encode level_chunk packet without caching', () => {
       const packet = require(join(__dirname, version, packetLevelChunkWithoutCaching))
 
       const column = new ChunkColumn({ x: packet.x, z: packet.z })
       const payload = Buffer.from(packet.payload)
-      await column.networkDecodeNoCache(payload, packet.sub_chunk_count)
+      column.networkDecodeNoCache(payload, packet.sub_chunk_count)
 
       if (registry.version['<']('1.18')) { // In 1.18+, with sectionCount as -1 we only get the biomes here
         assert(Object.keys(column.blockEntities).length > 0, 'block entities not found')
       }
 
-      const encoded = await column.networkEncodeNoCache()
+      const encoded = column.networkEncodeNoCache()
       if (!encoded.equals(payload)) {
         dbdiff(payload, encoded)
         throw new Error('Encoded payload does not match original')
       }
     })
 
-    it('can re-encode level_chunk with caching', async () => {
+    it('can re-encode level_chunk with caching', () => {
       const packet = require(join(__dirname, version, packetLevelChunkWithCaching))
       const column = new ChunkColumn({ x: packet.x, z: packet.z })
       const payload = Buffer.from(packet.payload)
 
       assert(packet.cache_enabled, "you didn't dump packets correctly")
 
-      const misses = await column.networkDecode(packet.blobs.hashes, blobStore, payload)
+      const misses = column.networkDecode(packet.blobs.hashes, blobStore, payload)
       assert(misses.length > 0, 'Blob cache should be empty, so networkDecode() should return the missing blob hashes')
 
       const missResponse = require(join(__dirname, version, packetLevelChunkCacheMissReponse))
@@ -54,12 +54,12 @@ for (const version of versions) {
       }
 
       // Run this function again, now that all blobs are in the store
-      const nowMissing = await column.networkDecode(packet.blobs.hashes, blobStore)
+      const nowMissing = column.networkDecode(packet.blobs.hashes, blobStore)
 
       assert(nowMissing.length === 0, 'Blob cache should be full, networkDecode() should return empty missing hashes')
 
       // Try re-encoding the cached packet data, make sure the hashes match
-      const encoded = await column.networkEncode(blobStore)
+      const encoded = column.networkEncode(blobStore)
       const extraneousBlobs = encoded.blobs.map(blob => blob.hash.toString()).find(blob => !packet.blobs.hashes.includes(blob))
       if (extraneousBlobs) {
         throw new Error('Encoded payload contains extraneous blobs')
@@ -72,18 +72,18 @@ for (const version of versions) {
       const packetSubChunkWithCaching = fixtures.find(f => f.includes('subchunk') && f.includes('cached'))
       const packetSubChunkCacheMissReponse = fixtures.find(f => f.includes('subchunk') && f.includes('CacheMiss'))
 
-      async function processSubChunk (x, y, z, payload) {
+      function processSubChunk (x, y, z, payload) {
         const column = new ChunkColumn({ x, z })
         column.networkDecodeSubChunkNoCache(y, payload)
 
-        const encoded = await column.networkEncodeSubChunkNoCache(y)
+        const encoded = column.networkEncodeSubChunkNoCache(y)
         if (!encoded.equals(payload)) {
           dbdiff(payload, encoded)
           throw new Error('Encoded payload does not match original')
         }
       }
 
-      it('can re-encode subchunk packet without caching', async () => {
+      it('can re-encode subchunk packet without caching', () => {
         const packet = require(join(__dirname, version, packetSubChunkWithoutCaching))
         if (packet.entries) {
           for (const entry of packet.entries) {
@@ -94,9 +94,9 @@ for (const version of versions) {
         }
       })
 
-      async function processCachedSubChunk (x, y, z, blobId, extraData) {
+      function processCachedSubChunk (x, y, z, blobId, extraData) {
         const column = new ChunkColumn({ x, z })
-        const misses = await column.networkDecodeSubChunk([blobId], blobStore, extraData)
+        const misses = column.networkDecodeSubChunk([blobId], blobStore, extraData)
         assert(misses.length > 0, 'Blob cache should be empty, so networkDecode() should return the missing blob hashes')
 
         const missResponse = require(join(__dirname, version, packetSubChunkCacheMissReponse))
@@ -106,11 +106,11 @@ for (const version of versions) {
         }
 
         // Run this function again, now that all blobs are in the store
-        const nowMissing = await column.networkDecodeSubChunk([blobId], blobStore)
+        const nowMissing = column.networkDecodeSubChunk([blobId], blobStore)
         assert(nowMissing.length === 0, 'Blob cache should be full, networkDecode() should return empty missing hashes')
 
         // Try re-encoding the cached packet data, make sure the hashes match
-        const [hash, extraPayload] = await column.networkEncodeSubChunk(y, blobStore)
+        const [hash, extraPayload] = column.networkEncodeSubChunk(y, blobStore)
         const extraneousBlobs = hash.toString() !== blobId ? hash : null
         // console.log('Encoded blobs', hash, extraneousBlobs, 'expected', packet.blob_id)
         if (extraneousBlobs) {
@@ -123,7 +123,7 @@ for (const version of versions) {
         // OK
       }
 
-      it('can re-encode subchunk packet with caching', async () => {
+      it('can re-encode subchunk packet with caching', () => {
         const packet = require(join(__dirname, version, packetSubChunkWithCaching))
         assert(packet.cache_enabled, "you didn't dump packets correctly")
 
@@ -139,12 +139,12 @@ for (const version of versions) {
   })
 
   describe('bedrock subchunk tests on ' + version, () => {
-    it('compaction works on ' + version, async () => {
+    it('compaction works on ' + version, () => {
       const cc = new ChunkColumn({ x: 0, z: 0 })
       const fakeBlocks = [1, 2, 3]
       let i = 0
       for (let y = 0; y < 4; y++) {
-        const section = await cc.newSection(y)
+        const section = cc.newSection(y)
         for (let l = 0; l < 4; l++) {
           for (let x = 0; x < 16; x++) {
             // Here we set some blocks and replace it with air right after
@@ -175,14 +175,14 @@ for (const version of versions) {
 
 describe('special bedrock tests', () => {
   // Test for some special cases that are not covered by the normal tests
-  it('can load v1 subchunks in level_chunk', async () => {
+  it('can load v1 subchunks in level_chunk', () => {
     // SubChunk v1 is only sent by 3rd party servers
     const ChunkColumn = require('prismarine-chunk')('bedrock_1.17.10')
     const packet = require('./bedrock_1.17.10/subchunkv1.json').params
     const column = new ChunkColumn({ x: packet.x, z: packet.z })
     const payload = Buffer.from(packet.payload)
-    await column.networkDecodeNoCache(payload, packet.sub_chunk_count)
-    await column.networkEncodeNoCache()
+    column.networkDecodeNoCache(payload, packet.sub_chunk_count)
+    column.networkEncodeNoCache()
     const blocks = column.getBlocks()
     assert(blocks.length > 0, 'No blocks in column')
     console.log('Unique blocks', blocks.map(e => e.name))

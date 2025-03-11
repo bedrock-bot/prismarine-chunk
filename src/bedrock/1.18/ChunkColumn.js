@@ -82,7 +82,7 @@ class ChunkColumn180 extends ChunkColumn13 {
    * Encodes this chunk column for the network with no caching
    * @param buffer Full chunk buffer
    */
-  async networkEncodeNoCache () {
+  networkEncodeNoCache () {
     const stream = new Stream()
     for (const biomeSection of this.biomes) {
       biomeSection.export(StorageType.Runtime, stream)
@@ -100,7 +100,7 @@ class ChunkColumn180 extends ChunkColumn13 {
    * @param blobStore The blob store to write chunks in this section to
    * @returns {Promise<Buffer[]>} The blob hashes for this chunk, the last one is biomes, rest are sections
    */
-  async networkEncodeBlobs (blobStore, includeBiomes) {
+  networkEncodeBlobs (blobStore, includeBiomes) {
     const blobHashes = []
     if (includeBiomes) {
       if (this.biomesUpdated || !this.biomesHash || !blobStore.get(this.biomesHash.toString())) {
@@ -109,7 +109,7 @@ class ChunkColumn180 extends ChunkColumn13 {
           biomeSection.export(StorageType.Runtime, stream)
         }
         const biomeBuf = stream.getBuffer()
-        await this.updateBiomeHash(biomeBuf)
+        this.updateBiomeHash(biomeBuf)
 
         this.biomesUpdated = false
         blobStore.set(this.biomesHash.toString(), new BlobEntry({ x: this.x, z: this.z, type: BlobType.Biomes, buffer: this.biomes }))
@@ -120,8 +120,8 @@ class ChunkColumn180 extends ChunkColumn13 {
     return blobHashes
   }
 
-  async networkEncode (blobStore) {
-    const blobs = await this.networkEncodeBlobs(blobStore, true, false)
+  networkEncode (blobStore) {
+    const blobs = this.networkEncodeBlobs(blobStore, true, false)
 
     return {
       blobs, // cache blobs
@@ -166,7 +166,7 @@ class ChunkColumn180 extends ChunkColumn13 {
    * @param {Buffer} payload The rest of the non-cached data
    * @returns {CCHash[]} A list of hashes we don't have and need. If len > 0, decode failed.
    */
-  async networkDecode (blobs, blobStore, payload) {
+  networkDecode (blobs, blobStore, payload) {
     if (payload) {
       const stream = new Stream(payload)
       const borderblocks = stream.readBuffer(stream.readZigZagVarInt())
@@ -207,7 +207,7 @@ class ChunkColumn180 extends ChunkColumn13 {
     return misses // return empty array if everything was loaded
   }
 
-  async networkDecodeSubChunkNoCache (y, buffer) {
+  networkDecodeSubChunkNoCache (y, buffer) {
     const stream = new Stream(buffer)
     const section = new SubChunk(this.registry, this.Block, { y, subChunkVersion: this.subChunkVersion })
     section.decode(StorageType.Runtime, stream)
@@ -222,11 +222,11 @@ class ChunkColumn180 extends ChunkColumn13 {
     }
   }
 
-  async networkEncodeSubChunkNoCache (y) {
+  networkEncodeSubChunkNoCache (y) {
     const tiles = this.getSectionBlockEntities(y)
 
     const section = this.getSectionAtIndex(y)
-    const subchunk = await section.encode(StorageType.Runtime, false, this.compactOnSave)
+    const subchunk = section.encode(StorageType.Runtime, false, this.compactOnSave)
 
     const tileBufs = []
     for (const tile of tiles) {
@@ -236,7 +236,7 @@ class ChunkColumn180 extends ChunkColumn13 {
     return Buffer.concat([subchunk, ...tileBufs])
   }
 
-  async networkDecodeSubChunk (blobs, blobStore, payload) {
+  networkDecodeSubChunk (blobs, blobStore, payload) {
     if (payload) {
       const nbtStream = new Stream(payload)
       let startOffset = 0
@@ -268,19 +268,19 @@ class ChunkColumn180 extends ChunkColumn13 {
 
       const stream = new Stream(entry.buffer)
       const subchunk = new SubChunk(this.registry, this.Block, { y: blob.y, subChunkVersion: this.subChunkVersion })
-      await subchunk.decode(StorageType.Runtime, stream)
+      subchunk.decode(StorageType.Runtime, stream)
       this.setSection(subchunk.y, subchunk)
     }
 
     return misses // return empty array if everything was loaded
   }
 
-  async networkEncodeSubChunk (y, blobStore) {
+  networkEncodeSubChunk (y, blobStore) {
     const tiles = this.getSectionBlockEntities(y)
     const section = this.getSectionAtIndex(y)
 
     if (section.updated) {
-      const terrainBuffer = await section.encode(StorageType.Runtime, true, this.compactOnSave) // note Runtime, not NetworkPersistence
+      const terrainBuffer = section.encode(StorageType.Runtime, true, this.compactOnSave) // note Runtime, not NetworkPersistence
       const blob = new BlobEntry({ x: this.x, y: section.y, z: this.z, type: BlobType.ChunkSection, buffer: terrainBuffer })
       blobStore.set(section.hash.toString(), blob)
     }

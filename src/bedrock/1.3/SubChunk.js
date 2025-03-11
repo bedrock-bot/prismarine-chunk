@@ -138,7 +138,7 @@ class SubChunk {
     }
   }
 
-  async encode (format, checksum = false, compact = true) {
+  encode (format, checksum = false, compact = true) {
     const stream = new Stream()
 
     if (this.subChunkVersion >= 8) {
@@ -149,7 +149,7 @@ class SubChunk {
 
     const buf = stream.getBuffer()
     if (checksum) {
-      this.hash = await getChecksum(buf)
+      this.hash = getChecksum(buf)
       this.updated = false
     }
     return buf
